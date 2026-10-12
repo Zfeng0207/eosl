@@ -1,6 +1,12 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { Shell } from '@/components/Shell';
+import { MockEoslDataService } from '@/data/mock/MockEoslDataService';
+import { LineagePage } from '@/pages/LineagePage';
 import { DEFAULT_PATH } from '@/pages';
+import { EoslProvider } from '@/state/EoslContext';
+
+// MOCK data source. Swap for an analytics()-backed EoslDataService to use real data.
+const dataService = new MockEoslDataService();
 
 const router = createBrowserRouter([
   {
@@ -12,7 +18,7 @@ const router = createBrowserRouter([
       { path: '/hosts-without-app', element: <div className="ttl">Host without Application</div> },
       { path: '/hosts-without-eosl', element: <div className="ttl">Host without EoSL</div> },
       { path: '/database-eosl', element: <div className="ttl">Database EoSL Analysis</div> },
-      { path: '/lineage', element: <div className="ttl">Lineage Explorer</div> },
+      { path: '/lineage', element: <LineagePage /> },
       { path: '/impact', element: <div className="ttl">Impact Analysis: what happens if we do nothing?</div> },
       { path: '/update-center', element: <div className="ttl">EOSL Update Center</div> },
       { path: '*', element: <Navigate to={DEFAULT_PATH} replace /> },
@@ -21,5 +27,9 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <EoslProvider service={dataService}>
+      <RouterProvider router={router} />
+    </EoslProvider>
+  );
 }

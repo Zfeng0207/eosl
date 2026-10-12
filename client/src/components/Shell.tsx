@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { DataGate } from '@/components/DataGate';
 import { GenieAssistant } from '@/components/genie/GenieAssistant';
 import { PAGES } from '@/pages';
 
@@ -58,7 +59,9 @@ export function Shell() {
         </aside>
         <main className="main">
           <div className="app" id="pg">
-            <Outlet />
+            <DataGate>
+              <Outlet />
+            </DataGate>
           </div>
         </main>
       </div>

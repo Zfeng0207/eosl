@@ -17,12 +17,13 @@ export interface LineageRecord {
   t: ProductType;
   d: string | null;
   sub: string;
-  bu: BusinessUnit;
+  bu: string;
   own: string;
   svc: string;
   app: string;
   biz: string;
-  env: 'Production' | 'Non-prod';
+  /** 'Production' marks production assets; anything else is treated as non-production. */
+  env: string;
   cia: string;
   /** Asset count. */
   h: number;

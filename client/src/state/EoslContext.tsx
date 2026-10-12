@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { EoslDataService } from '@/data/EoslDataService';
+import type { EoslDataSource } from '@/data/EoslDataService';
 import { worstOf } from '@/data/rag';
 import type { Overrides } from '@/data/rag';
 import type { EoslDataset, LineageKey, Rag, StatusOption, WorkflowStep } from '@/data/types';
@@ -55,42 +55,36 @@ const EoslContext = createContext<EoslState | null>(null);
 // The Leadership prototype opens the Lineage Explorer focused on "Act now".
 const INITIAL_FOCUS: ReadonlySet<Rag> = new Set<Rag>(['red']);
 
-/** Loads the dataset once, then holds all cross-page state (filters, overrides, workflow). */
-export function EoslProvider({ service, children }: { service: EoslDataService; children: ReactNode }) {
-  const [data, setData] = useState<EoslDataset | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let live = true;
-    service.load().then(
-      (d) => live && setData(d),
-      (e: unknown) => live && setError(e instanceof Error ? e.message : String(e))
-    );
-    return () => {
-      live = false;
-    };
-  }, [service]);
+/**
+ * Loads the dataset from the data source, then holds all cross-page state (filters, overrides,
+ * workflow). Loading and error states render in the page area, inside the app shell.
+ */
+export function EoslProvider({ source, children }: { source: EoslDataSource; children: ReactNode }) {
+  const { data, error, warehouseState } = source.useDataset();
 
   if (error)
+    return <p className="sub" style={{ marginTop: 32 }}>{`Couldn't load EOSL data from ${source.label}: ${error}`}</p>;
+  if (!data)
     return (
-      <div className="app">
-        <p className="sub">{`Couldn't load EOSL data: ${error}`}</p>
-      </div>
+      <p className="sub" style={{ marginTop: 32 }} role="status">
+        {warehouseState
+          ? `Starting the SQL warehouse (${warehouseState.toLowerCase()})… this can take a minute.`
+          : `Loading EOSL data from ${source.label}…`}
+      </p>
     );
-  if (!data) return null;
   return (
-    <LoadedProvider service={service} data={data}>
+    <LoadedProvider source={source} data={data}>
       {children}
     </LoadedProvider>
   );
 }
 
 function LoadedProvider({
-  service,
+  source,
   data,
   children,
 }: {
-  service: EoslDataService;
+  source: EoslDataSource;
   data: EoslDataset;
   children: ReactNode;
 }) {
@@ -143,11 +137,11 @@ function LoadedProvider({
         hz,
         overrides
       );
-      const next = await service.updateStatus(product, status);
+      const next = await source.updateStatus(product, status);
       setOverrides((cur) => ({ ...cur, [product]: next }));
       setLastUpdate({ product, status, previous, next });
     },
-    [data.records, hz, overrides, service]
+    [data.records, hz, overrides, source]
   );
 
   const advanceWorkflow = useCallback(() => {

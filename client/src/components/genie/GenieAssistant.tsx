@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useLocation } from 'react-router';
 import { useGenieChat } from '@databricks/appkit-ui/react';
 import type { GenieMessageItem } from '@databricks/appkit-ui/react';
+import { useAppConfig } from '@/lib/appConfig';
 import { pageForPath } from '@/pages';
 import { SUGGESTED } from './questions';
 
@@ -50,18 +51,12 @@ export function GenieAssistant() {
   const suggestions = SUGGESTED[page.key];
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [connected, setConnected] = useState<boolean | null>(null);
+  const config = useAppConfig();
+  const connected = config ? config.genie : null;
   const [local, setLocal] = useState<Bubble[]>([]);
   const { messages, status, error, sendMessage, reset } = useGenieChat({ alias: 'default', persistInUrl: false });
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    fetch('/api/eosl/config')
-      .then((r) => r.json() as Promise<{ genie?: boolean }>)
-      .then((c) => setConnected(Boolean(c.genie)))
-      .catch(() => setConnected(false));
-  }, []);
 
   // New page, new conversation (as in the prototype).
   const [pageKey, setPageKey] = useState(page.key);

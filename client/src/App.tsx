@@ -1,15 +1,10 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { Shell } from '@/components/Shell';
-import { MockEoslDataService } from '@/data/mock/MockEoslDataService';
 import { ImpactPage } from '@/pages/ImpactPage';
 import { LineagePage } from '@/pages/LineagePage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { UpdateCenterPage } from '@/pages/UpdateCenterPage';
 import { DEFAULT_PATH } from '@/pages';
-import { EoslProvider } from '@/state/EoslContext';
-
-// MOCK data source. Swap for an analytics()-backed EoslDataService to use real data.
-const dataService = new MockEoslDataService();
 
 const router = createBrowserRouter([
   {
@@ -30,9 +25,5 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return (
-    <EoslProvider service={dataService}>
-      <RouterProvider router={router} />
-    </EoslProvider>
-  );
+  return <RouterProvider router={router} />;
 }

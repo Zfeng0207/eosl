@@ -13,8 +13,8 @@ A React port of the EOSL Decision Intelligence **Leadership** prototype (`EOSL H
 
 | Route                                                                                         | Page                              | State                                      |
 | --------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------ |
-| `/lineage` (default)                                                                          | Lineage Explorer (owner view)     | Built, mock data                           |
-| `/impact`                                                                                     | Impact Analysis                   | Built, mock data                           |
+| `/lineage` (default)                                                                          | Lineage Explorer (owner view)     | Built, Unity Catalog data                  |
+| `/impact`                                                                                     | Impact Analysis                   | Built, mock content (not yet in UC)        |
 | `/update-center`                                                                              | EOSL Update Center                | Built; status overrides are kept in memory |
 | `/overview`, `/hosts-with-app`, `/hosts-without-app`, `/hosts-without-eosl`, `/database-eosl` | Landscape and host/database views | Placeholders for embedded AI/BI dashboards |
 
@@ -25,28 +25,58 @@ The "Ask Genie" button and panel appear on every page.
 ### Run it
 
 ```bash
+cp .env.example .env   # then fill in your profile and DATABRICKS_WAREHOUSE_ID
 pnpm install
-pnpm dev          # http://localhost:8000 (redirects to /lineage)
+pnpm dev               # http://localhost:8000 (redirects to /lineage)
 ```
+
+The client asks the server which data source is configured (`GET /api/eosl/config`):
+
+- **`DATABRICKS_WAREHOUSE_ID` set:** data comes from Unity Catalog through `analytics()`.
+- **No warehouse, `EOSL_USE_MOCK_DATA=true`:** the bundled sample data (the prototype's numbers), for offline UI work.
+- **Neither:** the pages say they're not connected.
 
 ### Where things live
 
 - `client/src/styles/eosl.css`: the prototype stylesheet, copied verbatim (keep the class names). AppKit UI's Tailwind styles are intentionally not loaded, so they can't override it.
-- `client/src/data/`: the data layer. Components read data only through the `EoslDataService` interface (`EoslDataService.ts`).
-  - **Mock data:** `client/src/data/mock/MockEoslDataService.ts`, with a seeded PRNG (seed 11, today = 2026-10-06). Its records match the prototype's numbers exactly. Everything in it is synthetic and marked `MOCK`.
+- `client/src/data/`: the data layer. Components read data only through the `EoslDataSource` interface (`EoslDataService.ts`).
+  - **Unity Catalog:** `client/src/data/unityCatalog/unityCatalogDataSource.ts`. It runs the queries in `config/queries/` with `useAnalyticsQuery` and checks every row against the expected shape.
+  - **Sample data:** `client/src/data/mock/mockDataSource.ts`, with a seeded PRNG (seed 11, today = 2026-10-06), matching the prototype's numbers exactly. Everything in it is synthetic and marked `MOCK`.
+  - **Not yet in UC:** Impact Analysis content and the workflow steps, in `client/src/data/appContent.ts`.
   - RAG rule: `client/src/data/rag.ts`.
 - `client/src/state/EoslContext.tsx`: shared cross-page state (product type, horizon, status focus, owner, traced node, status overrides, workflow).
 - `client/src/components/owner/`: the owner-lineage page logic (`useOwnerView.ts`) and the map with its SVG connectors (`OwnerMap.tsx`).
 - `client/src/pages/placeholders.config.ts`: titles and the optional `embedUrl` for each AI/BI placeholder page.
-- `config/queries-draft/`: draft SQL for the real data, with `TODO` table names.
+- `config/queries/`: the SQL the app runs (`lineage_records`, `products`, `support_rates`) against `workspace.eosl`. Types are generated into `shared/appkit-types/analytics.d.ts` by `pnpm typegen`.
+- `config/queries-draft/impact_summary.sql`: draft for Impact Analysis, not wired yet.
+- `scripts/eosl-dataset/`: creates the synthetic dataset in Unity Catalog (see below).
 - `reference/` (gitignored): the original prototype files.
 
-### Swap in real data (`analytics()`)
+### Unity Catalog data
 
-1. Bind a SQL warehouse to the app (a `sql_warehouse` resource in `databricks.yml`, exposed as `DATABRICKS_WAREHOUSE_ID` via `app.yaml` `valueFrom`). For local runs, put `DATABRICKS_WAREHOUSE_ID` in `.env`.
-2. Fill in the Unity Catalog table names in `config/queries-draft/*.sql`, then move the files to `config/queries/`. Run `pnpm typegen`.
-3. Register `analytics()` in `server/server.ts`. Then write an `EoslDataService` that loads data with the analytics query endpoints. Pass it to `<EoslProvider service={...}>` in `client/src/App.tsx` in place of `MockEoslDataService`. No page code needs to change.
-4. To persist Update Center changes (`updateStatus()`, see the TODO in the mock), add a Lakebase or Delta table. Expose it through a server route.
+The Lineage Explorer reads `workspace.eosl`, a **synthetic** demo estate: 56 products with approximate EoSL dates, 24 sub-portfolios, 12 owners, 190 applications and 13,573 assets.
+
+| Object                   | What it holds                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `products`               | Product name, type and EoSL date                                                                                                                              |
+| `sub_portfolios`         | Sub-portfolio, business unit and owner                                                                                                                        |
+| `applications`           | Application, technical service, business service, environment and CIA rating                                                                                  |
+| `deployments`            | Which products each application runs on, with asset counts                                                                                                    |
+| `assets`                 | One row per asset                                                                                                                                             |
+| `extended_support_rates` | Annual extended-support cost per asset, by product type                                                                                                       |
+| `lineage_records` (view) | One row per product, sub-portfolio and application path, with the asset count and days until EoSL computed from `CURRENT_DATE()`. This is what the app reads. |
+
+**Recreate it in another account.** Run this with your own profile and warehouse. The last argument is optional: the app's service principal (`databricks apps get eosl` → `service_principal_client_id`), which is granted `USE CATALOG` and `USE SCHEMA` + `SELECT` on the schema. The script uses `CREATE OR REPLACE`, so rerunning it rebuilds the tables.
+
+```bash
+scripts/eosl-dataset/run.sh <profile> <warehouse-id> workspace.eosl <app-sp-client-id>
+```
+
+If you use a different catalog or schema, update the three files in `config/queries/` and run `pnpm typegen`.
+
+**Deployed app.** The deployed app needs the warehouse bound as an app resource, with `DATABRICKS_WAREHOUSE_ID` set via `app.yaml` `valueFrom`. Until then it shows "not connected".
+
+**Owner status updates** (Update Center) are kept in memory. To persist them, add a Delta or Lakebase table; see the TODO in `updateStatus()`.
 
 ### Connect Genie
 

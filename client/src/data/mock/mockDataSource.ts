@@ -1,21 +1,12 @@
 /*
  * MOCK DATA. Everything in this file is synthetic, ported as-is from the EOSL
- * prototypes (reference/eosl-app-lead.js; identical in eosl-app.js) so the numbers match exactly. Replace this
- * service with a real EoslDataService backed by analytics() before using the app
- * for decisions.
+ * prototypes (reference/eosl-app-lead.js; identical in eosl-app.js) so the numbers match exactly.
+ * Only used when EOSL_USE_MOCK_DATA=true and no SQL warehouse is configured; the app normally reads
+ * Unity Catalog (see ../unityCatalog/).
  */
-import type { EoslDataService } from '../EoslDataService';
-import type {
-  BusinessUnit,
-  EoslDataset,
-  ImpactData,
-  LineageRecord,
-  Product,
-  ProductType,
-  Rag,
-  StatusOption,
-  WorkflowStep,
-} from '../types';
+import { IMPACT, STATUS_RAG, WORKFLOW } from '../appContent';
+import type { EoslDataSource } from '../EoslDataService';
+import type { BusinessUnit, EoslDataset, LineageRecord, Product, ProductType, Rag, StatusOption } from '../types';
 import { mulberry32 } from './prng';
 
 // MOCK: the prototype's fixed "today" and PRNG seed.
@@ -74,65 +65,6 @@ const BZ: Readonly<Record<BusinessUnit, readonly string[]>> = {
 // MOCK: extended-support cost per asset per year (USD).
 const RATE: Readonly<Record<ProductType, number>> = { OS: 85, Database: 420, Software: 60, Hardware: 150 };
 
-// MOCK: Impact Analysis scenarios (the prototype's IMP) and its static table.
-const IMPACT: ImpactData = {
-  scenarios: {
-    'Oracle Database 19c': {
-      eosl: 'Jan 2027',
-      clusters: [
-        { name: 'Production Cluster', apps: 18 },
-        { name: 'DR Cluster', apps: 12 },
-        { name: 'Analytics Cluster', apps: 8 },
-      ],
-      apps: 38,
-      recommendation: 'Upgrade is recommended within 6 months, prioritizing the Production cluster first.',
-    },
-    'Windows 11 23H2': {
-      eosl: 'Oct 2026',
-      clusters: [
-        { name: 'Corporate Desktops', apps: 15 },
-        { name: 'Field Laptops', apps: 9 },
-        { name: 'Kiosk Fleet', apps: 5 },
-      ],
-      apps: 29,
-      recommendation:
-        'EoSL is days away: patch-only exposure starts immediately, so prioritize field laptops handling operational data.',
-    },
-    'SQL Server 2016': {
-      eosl: 'Mar 2027',
-      clusters: [
-        { name: 'Finance Cluster', apps: 10 },
-        { name: 'Reporting Cluster', apps: 8 },
-        { name: 'Dev/Test Cluster', apps: 4 },
-      ],
-      apps: 22,
-      recommendation: 'Migrate finance first to avoid an unsupported platform during financial close.',
-    },
-  },
-  defaultScenario: 'Oracle Database 19c',
-  topAssets: [
-    { asset: 'Oracle DB', eosl: 'Jan 2027', apps: 38 },
-    { asset: 'Windows 11', eosl: 'Oct 2026', apps: 29 },
-    { asset: 'SQL Server', eosl: 'Mar 2027', apps: 22 },
-  ],
-};
-
-// MOCK: owner status → RAG (the prototype's SR).
-const STATUS_RAG: Readonly<Record<StatusOption, Rag>> = {
-  'In Progress': 'amber',
-  'Migration Completed': 'green',
-  'Renewal Requested': 'amber',
-  Decommissioned: 'green',
-};
-
-// MOCK: renewal approval workflow (the prototype's WF + WM).
-const WORKFLOW: readonly WorkflowStep[] = [
-  { name: 'Renewal Request', message: 'Renewal request submitted for review.' },
-  { name: 'Manager Approval', message: 'Approved by manager, routed to portfolio owner.' },
-  { name: 'Portfolio Approval', message: 'Approved by portfolio owner, routed for system update.' },
-  { name: 'Automatic Status Update', message: 'Status updated automatically. RAG and dashboards refreshed.' },
-];
-
 /**
  * MOCK lineage records. The PRNG call order (and the random-comparator sorts) must
  * stay exactly as in the prototype, or every generated number changes.
@@ -172,25 +104,21 @@ function generateRecords(): LineageRecord[] {
   return D;
 }
 
-export class MockEoslDataService implements EoslDataService {
-  private dataset: EoslDataset | null = null;
-
-  load(): Promise<EoslDataset> {
-    this.dataset ??= {
-      products: P.map(([name, type, eosl]): Product => ({ name, type, eosl })),
-      records: generateRecords(),
-      rates: RATE,
-      impact: IMPACT,
-      statusRag: STATUS_RAG,
-      workflow: WORKFLOW,
-    };
-    return Promise.resolve(this.dataset);
-  }
-
-  updateStatus(_product: string, status: StatusOption): Promise<Rag> {
-    // TODO: persist the update (Lakebase table or a Delta table via a server route)
-    // so overrides survive reloads and are shared across users. Today they live in
-    // React state only.
-    return Promise.resolve(STATUS_RAG[status]);
-  }
+/** MOCK data source: the prototype's synthetic estate, for offline UI work (EOSL_USE_MOCK_DATA=true). */
+export function createMockDataSource(): EoslDataSource {
+  const dataset: EoslDataset = {
+    products: P.map(([name, type, eosl]): Product => ({ name, type, eosl })),
+    records: generateRecords(),
+    rates: RATE,
+    impact: IMPACT,
+    statusRag: STATUS_RAG,
+    workflow: WORKFLOW,
+  };
+  const state = { data: dataset, loading: false, error: null, warehouseState: null };
+  return {
+    label: 'sample data',
+    useDataset: () => state,
+    // In-memory only, like the Unity Catalog source today.
+    updateStatus: (_product: string, status: StatusOption): Promise<Rag> => Promise.resolve(STATUS_RAG[status]),
+  };
 }

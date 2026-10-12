@@ -34,3 +34,7 @@ pnpm-lock.yaml
 
 # Vendor
 vendor
+
+# Prototype stylesheet is kept verbatim
+client/src/styles/eosl.css
+reference

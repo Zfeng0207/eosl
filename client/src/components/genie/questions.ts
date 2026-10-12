@@ -32,7 +32,11 @@ export const SUGGESTED: Readonly<Record<PageKey, readonly string[]>> = {
     'What is the extended-support exposure for this selection?',
     'Which application should we remediate first?',
   ],
-  imp: ['What happens if we do nothing for 6 months?', 'Which cluster should be upgraded first?', 'Summarise the business impact'],
+  imp: [
+    'What happens if we do nothing for 6 months?',
+    'Which cluster should be upgraded first?',
+    'Summarise the business impact',
+  ],
   upd: [
     'How does a status update change the RAG?',
     'Who approves a renewal request?',

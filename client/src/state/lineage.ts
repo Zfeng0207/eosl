@@ -22,10 +22,7 @@ export function useLineageView() {
   const rag = useCallback((r: LineageRecord, months: number = hz): Rag => ragOf(r, months, overrides), [hz, overrides]);
 
   /** `bt()`: records for the current product-type filter. */
-  const byType = useMemo(
-    () => data.records.filter((r) => type === 'All' || r.t === type),
-    [data.records, type]
-  );
+  const byType = useMemo(() => data.records.filter((r) => type === 'All' || r.t === type), [data.records, type]);
 
   /** `flt(except)`: records matching the RAG focus and every selection except `except`. */
   const filtered = useCallback(

@@ -57,7 +57,12 @@ export function EoslProvider({ service, children }: { service: EoslDataService; 
     };
   }, [service]);
 
-  if (error) return <div className="app"><p className="sub">{`Couldn't load EOSL data: ${error}`}</p></div>;
+  if (error)
+    return (
+      <div className="app">
+        <p className="sub">{`Couldn't load EOSL data: ${error}`}</p>
+      </div>
+    );
   if (!data) return null;
   return (
     <LoadedProvider service={service} data={data}>
@@ -66,7 +71,15 @@ export function EoslProvider({ service, children }: { service: EoslDataService; 
   );
 }
 
-function LoadedProvider({ service, data, children }: { service: EoslDataService; data: EoslDataset; children: ReactNode }) {
+function LoadedProvider({
+  service,
+  data,
+  children,
+}: {
+  service: EoslDataService;
+  data: EoslDataset;
+  children: ReactNode;
+}) {
   const [type, setType] = useState<TypeFilter>('All');
   const [hz, setHz] = useState<Horizon>(0);
   const [ragFocus, setRagFocus] = useState<Rag | null>(null);
@@ -135,7 +148,24 @@ function LoadedProvider({ service, data, children }: { service: EoslDataService;
       advanceWorkflow,
       resetWorkflow,
     }),
-    [data, type, hz, ragFocus, sel, overrides, impSel, wf, wlog, lastUpdate, toggleRagFocus, toggleSel, resetLineage, submitStatus, advanceWorkflow, resetWorkflow]
+    [
+      data,
+      type,
+      hz,
+      ragFocus,
+      sel,
+      overrides,
+      impSel,
+      wf,
+      wlog,
+      lastUpdate,
+      toggleRagFocus,
+      toggleSel,
+      resetLineage,
+      submitStatus,
+      advanceWorkflow,
+      resetWorkflow,
+    ]
   );
 
   return <EoslContext.Provider value={value}>{children}</EoslContext.Provider>;

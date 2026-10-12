@@ -3,7 +3,59 @@
 A Databricks App powered by [AppKit](https://developers.databricks.com/docs/appkit/v0/), featuring React, TypeScript, and Tailwind CSS.
 
 **Enabled plugins:**
+
 - **Server** -- Express HTTP server with static file serving and Vite dev mode
+- **Genie** -- registered only when `DATABRICKS_GENIE_SPACE_ID` is set (see below)
+
+## EOSL Decision Intelligence
+
+A React port of the EOSL Decision Intelligence v3 prototype (BP palette).
+
+| Route                                                                                         | Page                              | State                                      |
+| --------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------ |
+| `/lineage` (default)                                                                          | Lineage Explorer                  | Built, mock data                           |
+| `/impact`                                                                                     | Impact Analysis                   | Built, mock data                           |
+| `/update-center`                                                                              | EOSL Update Center                | Built; status overrides are kept in memory |
+| `/overview`, `/hosts-with-app`, `/hosts-without-app`, `/hosts-without-eosl`, `/database-eosl` | Landscape and host/database views | Placeholders for embedded AI/BI dashboards |
+
+The "Ask Genie" button and panel appear on every page.
+
+### Run it
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:8000 (redirects to /lineage)
+```
+
+### Where things live
+
+- `client/src/styles/eosl.css`: the prototype stylesheet, copied verbatim (keep the class names). AppKit UI's Tailwind styles are intentionally not loaded, so they can't override it.
+- `client/src/data/`: the data layer. Components read data only through the `EoslDataService` interface (`EoslDataService.ts`).
+  - **Mock data:** `client/src/data/mock/MockEoslDataService.ts`, with a seeded PRNG (seed 11, today = 2026-10-06). Its records match the prototype's numbers exactly. Everything in it is synthetic and marked `MOCK`.
+  - RAG rule: `client/src/data/rag.ts`.
+- `client/src/state/EoslContext.tsx`: shared cross-page state (product type, horizon, RAG focus, lineage selection, status overrides, workflow).
+- `client/src/pages/placeholders.config.ts`: titles and the optional `embedUrl` for each AI/BI placeholder page.
+- `config/queries-draft/`: draft SQL for the real data, with `TODO` table names.
+- `reference/` (gitignored): the original prototype files.
+
+### Swap in real data (`analytics()`)
+
+1. Bind a SQL warehouse to the app (a `sql_warehouse` resource in `databricks.yml`, exposed as `DATABRICKS_WAREHOUSE_ID` via `app.yaml` `valueFrom`). For local runs, put `DATABRICKS_WAREHOUSE_ID` in `.env`.
+2. Fill in the Unity Catalog table names in `config/queries-draft/*.sql`, then move the files to `config/queries/`. Run `pnpm typegen`.
+3. Register `analytics()` in `server/server.ts`. Then write an `EoslDataService` that loads data with the analytics query endpoints. Pass it to `<EoslProvider service={...}>` in `client/src/App.tsx` in place of `MockEoslDataService`. No page code needs to change.
+4. To persist Update Center changes (`updateStatus()`, see the TODO in the mock), add a Lakebase or Delta table. Expose it through a server route.
+
+### Connect Genie
+
+1. Add a `genie_space` resource (`CAN_RUN`) to `databricks.yml`. Expose it as `DATABRICKS_GENIE_SPACE_ID` in `app.yaml` with `valueFrom`. For local runs, set it in `.env`.
+2. Genie runs as the signed-in user, so enable the `genie` user API scope (`user_api_scopes`) in `databricks.yml`.
+3. Restart. `server/server.ts` registers `genie()` only when the variable is set. Until then the panel replies "Genie isn't connected yet."
+
+The suggested questions per page are static (`client/src/components/genie/questions.ts`). Genie answers show as plain text. Genie doesn't see the visible page content the way the prototype's assistant did.
+
+### Embed an AI/BI dashboard
+
+Set `embedUrl` for the page in `client/src/pages/placeholders.config.ts`, using the dashboard's embed link from Databricks. Dashboard embedding must be allowed for this app's domain in the workspace settings.
 
 ## Prerequisites
 

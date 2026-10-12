@@ -109,7 +109,12 @@ export function GenieAssistant() {
 
   return (
     <>
-      <button type="button" className="gfab" style={open ? { display: 'none' } : undefined} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className="gfab"
+        style={open ? { display: 'none' } : undefined}
+        onClick={() => setOpen(true)}
+      >
         <Sparkle />
         Ask Genie
       </button>

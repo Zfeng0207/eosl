@@ -1,7 +1,4 @@
-import {
-  ResourceStatusIndicator,
-  ResourceStatusProvider,
-} from '@databricks/appkit-ui/react';
+import { ResourceStatusIndicator, ResourceStatusProvider } from '@databricks/appkit-ui/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource/m-plus-rounded-1c/400.css';

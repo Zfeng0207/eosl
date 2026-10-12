@@ -1,4 +1,9 @@
-export type PlaceholderKey = 'overview' | 'hosts-with-app' | 'hosts-without-app' | 'hosts-without-eosl' | 'database-eosl';
+export type PlaceholderKey =
+  | 'overview'
+  | 'hosts-with-app'
+  | 'hosts-without-app'
+  | 'hosts-without-eosl'
+  | 'database-eosl';
 
 export interface PlaceholderConfig {
   /** Page title, as in the prototype. */

@@ -17,7 +17,11 @@ export function KpiCards() {
   const { hz, ragFocus, toggleRagFocus } = useEosl();
   const { byType, rag } = useLineageView();
   const tot = sum(byType, (r) => r.h);
-  const assets = (g: Rag) => sum(byType.filter((r) => rag(r) === g), (r) => r.h);
+  const assets = (g: Rag) =>
+    sum(
+      byType.filter((r) => rag(r) === g),
+      (r) => r.h
+    );
 
   return (
     <div className="grid c4">

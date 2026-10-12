@@ -122,3 +122,22 @@ svg text{fill:var(--mu);font-size:11px;font-family:'M PLUS Rounded 1c',sans-seri
 .gm .gnote{display:block;margin-top:6px;font-size:11.5px;color:var(--mu);font-style:normal}
 .gm details{margin-top:8px;font-size:12px;white-space:normal}.gm summary{cursor:pointer;font-weight:700;color:var(--mu)}
 .gm pre{white-space:pre-wrap;word-break:break-word;font-size:11.5px;background:var(--sel);padding:8px 10px;border-radius:10px;margin:6px 0 0}
+/* Genie thinking indicator and word-by-word answers */
+.gm.gthinking{min-width:240px}.gthink{display:flex;flex-direction:column;gap:8px;white-space:normal}
+.gthink-row{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--tx)}
+.gthink-spark{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#003600;color:#FFE600;animation:gspin 2.4s linear infinite}
+.gthink-stage{animation:gfadein .35s ease-out}
+.gthink-dots{display:inline-flex;gap:3px;align-items:flex-end;height:10px;margin-left:-2px}
+.gthink-dots i{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.35;animation:gbounce 1.2s ease-in-out infinite}
+.gthink-dots i:nth-child(2){animation-delay:.15s}.gthink-dots i:nth-child(3){animation-delay:.3s}
+.gthink-time{margin-left:auto;font-weight:500;font-size:12px;color:var(--mu);font-variant-numeric:tabular-nums}
+.gthink-bar{display:block;height:3px;border-radius:99px;background:linear-gradient(90deg,transparent,#8EDF00,#007F00,transparent);background-size:200% 100%;animation:gslide 1.6s linear infinite;opacity:.8}
+.gloading{display:inline-flex;align-items:center;gap:6px}
+.gtyping::after{content:"";display:inline-block;width:7px;height:1.05em;margin-left:2px;vertical-align:-2px;background:#007F00;border-radius:2px;animation:gblink 1s steps(1) infinite}
+.gfade{animation:gfadein .4s ease-out}
+@keyframes gspin{to{transform:rotate(360deg)}}
+@keyframes gbounce{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-4px);opacity:1}}
+@keyframes gslide{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes gblink{50%{opacity:0}}
+@keyframes gfadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.gthink-spark,.gthink-dots i,.gthink-bar,.gtyping::after,.gfade,.gthink-stage{animation:none}.gthink-dots i{opacity:.7}}

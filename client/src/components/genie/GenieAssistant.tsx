@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocation } from 'react-router';
 import { useGenieChat } from '@databricks/appkit-ui/react';
@@ -6,6 +6,8 @@ import type { GenieMessageItem } from '@databricks/appkit-ui/react';
 import { useAppConfig } from '@/lib/appConfig';
 import { pageForPath } from '@/pages';
 import { SUGGESTED } from './questions';
+import { Thinking } from './Thinking';
+import { TypedText } from './TypedText';
 
 const NOT_CONNECTED = "Genie isn't connected yet.";
 const FAILED = "I couldn't reach the assistant just now. Try again in a moment.";
@@ -25,6 +27,8 @@ interface Bubble {
   role: 'u' | 'a';
   text: string;
   thinking?: boolean;
+  /** Genie message status while thinking, e.g. ASKING_AI or EXECUTING_QUERY. */
+  status?: string;
   table?: ResultTable | 'loading';
   sql?: string;
 }
@@ -47,7 +51,7 @@ function toBubble(m: GenieMessageItem, i: number): Bubble {
   const q = m.attachments.find((a) => a.query);
   const text = texts.join('\n\n') || q?.query?.description || '';
   if (!text && !TERMINAL_STATUSES.has(m.status)) {
-    return { id, role: 'a', text: m.status === 'EXECUTING_QUERY' ? 'Running the query…' : 'Thinking…', thinking: true };
+    return { id, role: 'a', text: 'Thinking…', thinking: true, status: m.status };
   }
 
   const bubble: Bubble = { id, role: 'a', text: text || NO_ANSWER, sql: q?.query?.query };
@@ -67,31 +71,44 @@ function toBubble(m: GenieMessageItem, i: number): Bubble {
   return bubble;
 }
 
-/** Genie answers use **bold** markdown; render that and leave everything else as text. */
-function RichText({ text }: { text: string }) {
+const cell = (v: string | null) =>
+  v === null ? '–' : /^-?\d+(\.\d+)?$/.test(v) ? Number(v).toLocaleString('en', { maximumFractionDigits: 2 }) : v;
+
+function Answer({ b, animate, onTyped }: { b: Bubble; animate: boolean; onTyped: (id: string) => void }) {
+  const [typed, setTyped] = useState(!animate);
+  const handleDone = useCallback(() => {
+    setTyped(true);
+    onTyped(b.id);
+  }, [b.id, onTyped]);
   return (
     <>
-      {text
-        .split(/(\*\*[^*]+\*\*)/g)
-        .map((part, i) =>
-          part.startsWith('**') && part.endsWith('**') && part.length > 4 ? (
-            <b key={i}>{part.slice(2, -2)}</b>
-          ) : (
-            <Fragment key={i}>{part}</Fragment>
-          )
-        )}
+      <TypedText text={b.text} animate={animate} onDone={handleDone} />
+      {typed && <AnswerDetails b={b} />}
     </>
   );
 }
 
-const cell = (v: string | null) =>
-  v === null ? '–' : /^-?\d+(\.\d+)?$/.test(v) ? Number(v).toLocaleString('en', { maximumFractionDigits: 2 }) : v;
-
-function Answer({ b }: { b: Bubble }) {
+/** Result table, SQL and AI note; shown once the answer text has finished typing. */
+function AnswerDetails({ b }: { b: Bubble }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const hasTable = !!b.table && b.table !== 'loading';
+  useEffect(() => {
+    // Bring the table into view when it appears, unless the reader has scrolled up.
+    const body = ref.current?.closest('.gbody');
+    if (body && body.scrollHeight - body.scrollTop - body.clientHeight < 400) body.scrollTop = body.scrollHeight;
+  }, [hasTable]);
   return (
-    <>
-      <RichText text={b.text} />
-      {b.table === 'loading' && <span className="gnote">Loading results…</span>}
+    <div className="gfade" ref={ref}>
+      {b.table === 'loading' && (
+        <span className="gnote gloading">
+          Loading results
+          <span className="gthink-dots" aria-hidden="true">
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
+        </span>
+      )}
       {b.table && b.table !== 'loading' && b.table.columns.length > 0 && (
         <>
           <div className="gtw">
@@ -124,7 +141,7 @@ function Answer({ b }: { b: Bubble }) {
         </details>
       )}
       {(b.sql || b.table) && <span className="gnote">AI-generated from Unity Catalog data. Check before acting.</span>}
-    </>
+    </div>
   );
 }
 
@@ -136,6 +153,9 @@ export function GenieAssistant() {
   const config = useAppConfig();
   const connected = config ? config.genie : null;
   const [local, setLocal] = useState<Bubble[]>([]);
+  // Answers that have finished their word-by-word reveal; they render instantly from then on.
+  const [settled, setSettled] = useState<ReadonlySet<string>>(() => new Set());
+  const markTyped = useCallback((id: string) => setSettled((cur) => new Set(cur).add(id)), []);
   const { messages, status, error, sendMessage, reset } = useGenieChat({ alias: 'default', persistInUrl: false });
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -158,7 +178,11 @@ export function GenieAssistant() {
 
   // As in the prototype, Genie's predicted follow-ups replace the page's suggested questions.
   const lastAnswer = connected ? [...messages].reverse().find((m) => m.role === 'assistant') : undefined;
-  const followups = (lastAnswer?.attachments ?? []).flatMap((a) => a.suggestedQuestions ?? []).slice(0, 3);
+  // Shown once the answer has finished typing, so they don't jump in ahead of it.
+  const answerReady = !!lastAnswer && settled.has(lastAnswer.id);
+  const followups = answerReady
+    ? (lastAnswer.attachments ?? []).flatMap((a) => a.suggestedQuestions ?? []).slice(0, 3)
+    : [];
   const suggestions = followups.length ? followups : SUGGESTED[page.key];
 
   const last = bubbles.at(-1);
@@ -218,8 +242,14 @@ export function GenieAssistant() {
         <div className="gbody" ref={bodyRef} aria-live="polite">
           <div className="gm a">{`I can see the ${page.label} page. Ask me anything about it.`}</div>
           {bubbles.map((b) => (
-            <div key={b.id} className={`gm ${b.role}${b.thinking ? ' t' : ''}`}>
-              {b.role === 'a' && !b.thinking ? <Answer b={b} /> : b.text}
+            <div key={b.id} className={`gm ${b.role}${b.thinking ? ' gthinking' : ''}`}>
+              {b.role === 'u' ? (
+                b.text
+              ) : b.thinking ? (
+                <Thinking status={b.status ?? ''} />
+              ) : (
+                <Answer b={b} animate={!settled.has(b.id)} onTyped={markTyped} />
+              )}
             </div>
           ))}
         </div>

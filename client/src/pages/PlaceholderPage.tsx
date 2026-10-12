@@ -1,14 +1,21 @@
+import { useAppConfig } from '@/lib/appConfig';
 import { PLACEHOLDERS } from './placeholders.config';
 import type { PlaceholderKey } from './placeholders.config';
 
-/** A view reserved for an embedded Databricks AI/BI dashboard. */
+/** A view delivered as an embedded Databricks AI/BI dashboard, or its reserved slot until one is configured. */
 export function PlaceholderPage({ page }: { page: PlaceholderKey }) {
-  const { title, embedUrl } = PLACEHOLDERS[page];
+  const { title, embedHeight } = PLACEHOLDERS[page];
+  const embedUrl = useAppConfig()?.embeds[page];
   return (
     <>
       <div className="ttl">{title}</div>
       {embedUrl ? (
-        <iframe className="phf" src={embedUrl} title={title} />
+        <iframe
+          className="phf"
+          src={embedUrl}
+          title={title}
+          style={embedHeight ? { height: embedHeight } : undefined}
+        />
       ) : (
         <div className="card">
           <h2>Databricks AI/BI dashboard</h2>

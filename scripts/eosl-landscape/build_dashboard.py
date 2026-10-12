@@ -296,17 +296,17 @@ def filter_widget(name, title, field, datasets, default=None, order_field=None):
 def pos(x, y, w, h): return {"x": x, "y": y, "width": w, "height": h}
 
 
+# No title widget: the dashboard name shows in Databricks, and the app page shows its own heading when embedded.
 layout = [
-    {"widget": {"name": "title", "multilineTextboxSpec": {"lines": ["# Landscape Overview"]}}, "position": pos(0, 0, 12, 1)},
-    {**filter_widget("filter-product-type", "Product type", "product_type", ["ds_status", "ds_trend", "ds_budget"]), "position": pos(0, 1, 6, 2)},
-    {**filter_widget("filter-projection", "Projected status", "projection", ["ds_status"], default="Today", order_field="projection_months"), "position": pos(6, 1, 6, 2)},
+    {**filter_widget("filter-product-type", "Product type", "product_type", ["ds_status", "ds_trend", "ds_budget"]), "position": pos(0, 0, 6, 2)},
+    {**filter_widget("filter-projection", "Projected status", "projection", ["ds_status"], default="Today", order_field="projection_months"), "position": pos(6, 0, 6, 2)},
 ]
 for i, n in enumerate(["kpi-red", "kpi-amber", "kpi-grey", "kpi-green"]):
-    layout.append(vega_widget(n, pos(i * 3, 3, 3, 4)))
-layout += [vega_widget("red-trend", pos(0, 7, 7, 8)), vega_widget("budget", pos(7, 7, 5, 8)),
-           vega_widget("risk-by-type", pos(0, 15, 6, 7)), vega_widget("top-subportfolios", pos(6, 15, 6, 7))]
+    layout.append(vega_widget(n, pos(i * 3, 2, 3, 4)))
+layout += [vega_widget("red-trend", pos(0, 6, 7, 8)), vega_widget("budget", pos(7, 6, 5, 8)),
+           vega_widget("risk-by-type", pos(0, 14, 6, 7)), vega_widget("top-subportfolios", pos(6, 14, 6, 7))]
 for i, n in enumerate(["tile-host-app", "tile-host-noapp", "tile-host-noeosl", "tile-database"]):
-    layout.append(vega_widget(n, pos(i * 3, 22, 3, 4)))
+    layout.append(vega_widget(n, pos(i * 3, 21, 3, 4)))
 
 dashboard = {
     "datasets": [

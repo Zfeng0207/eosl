@@ -106,9 +106,17 @@ The definition lives in `scripts/eosl-genie/build_space.py`. Edit it and recreat
 
 Users also need `SELECT` on `workspace.eosl` and access to the warehouse.
 
-### Embed an AI/BI dashboard
+### Embedded AI/BI dashboards
 
-Set `embedUrl` for the page in `client/src/pages/placeholders.config.ts`, using the dashboard's embed link from Databricks. Dashboard embedding must be allowed for this app's domain in the workspace settings.
+**Landscape Overview** (`/overview`) embeds the published AI/BI dashboard "EOSL Landscape Overview". It's built on the synthetic `workspace.eosl.landscape_*` tables. `scripts/eosl-landscape/run.sh <profile> <warehouse-id>` recreates the tables and dashboard in any account.
+
+How it's wired:
+
+- **Embed link:** set per page in the environment, never in code. `.env` holds `EOSL_EMBED_OVERVIEW=https://<host>/embed/dashboardsv3/<dashboard-id>?o=<workspace-id>`. The other pages use `EOSL_EMBED_HOSTS_WITH_APP`, `EOSL_EMBED_HOSTS_WITHOUT_APP`, `EOSL_EMBED_HOSTS_WITHOUT_EOSL` and `EOSL_EMBED_DATABASE_EOSL`. Pages without a link show the reserved slot.
+- **Frame height:** the embedded frame's height per page is set in `client/src/pages/placeholders.config.ts`.
+- **Approved domains:** the workspace allows embedding from `localhost` and the app's domain. This is the admin setting "AI/BI dashboard embedding → approved domains", or run `databricks settings aibi-dashboard-embedding-approved-domains`. A new app domain must be added there.
+- **Sign-in:** viewers must be signed in to the Databricks workspace in the same browser. If the frame shows "Log in", sign in once. Viewers also need access to the dashboard and to the `workspace.eosl` tables.
+- **Deployed app:** it needs `EOSL_EMBED_OVERVIEW` in its environment, set through `app.yaml`/`databricks.yml`.
 
 ## Prerequisites
 

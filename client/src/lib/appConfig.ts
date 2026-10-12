@@ -6,9 +6,11 @@ export type DataSourceKind = 'unity-catalog' | 'mock' | 'none';
 export interface AppConfig {
   genie: boolean;
   dataSource: DataSourceKind;
+  /** Embed links for AI/BI dashboard pages, keyed by page (e.g. 'overview'). */
+  embeds: Readonly<Record<string, string>>;
 }
 
-const FALLBACK: AppConfig = { genie: false, dataSource: 'none' };
+const FALLBACK: AppConfig = { genie: false, dataSource: 'none', embeds: {} };
 let request: Promise<AppConfig> | null = null;
 
 async function fetchConfig(): Promise<AppConfig> {
@@ -18,7 +20,10 @@ async function fetchConfig(): Promise<AppConfig> {
     const c = (await r.json()) as Partial<AppConfig>;
     const dataSource: DataSourceKind =
       c.dataSource === 'unity-catalog' || c.dataSource === 'mock' ? c.dataSource : 'none';
-    return { genie: Boolean(c.genie), dataSource };
+    const embeds = Object.fromEntries(
+      Object.entries(c.embeds ?? {}).filter(([, url]) => typeof url === 'string' && url.startsWith('https://'))
+    );
+    return { genie: Boolean(c.genie), dataSource, embeds };
   } catch {
     return FALLBACK;
   }

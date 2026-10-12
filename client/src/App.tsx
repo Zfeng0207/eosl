@@ -3,6 +3,7 @@ import { Shell } from '@/components/Shell';
 import { MockEoslDataService } from '@/data/mock/MockEoslDataService';
 import { ImpactPage } from '@/pages/ImpactPage';
 import { LineagePage } from '@/pages/LineagePage';
+import { UpdateCenterPage } from '@/pages/UpdateCenterPage';
 import { DEFAULT_PATH } from '@/pages';
 import { EoslProvider } from '@/state/EoslContext';
 
@@ -21,7 +22,7 @@ const router = createBrowserRouter([
       { path: '/database-eosl', element: <div className="ttl">Database EoSL Analysis</div> },
       { path: '/lineage', element: <LineagePage /> },
       { path: '/impact', element: <ImpactPage /> },
-      { path: '/update-center', element: <div className="ttl">EOSL Update Center</div> },
+      { path: '/update-center', element: <UpdateCenterPage /> },
       { path: '*', element: <Navigate to={DEFAULT_PATH} replace /> },
     ],
   },

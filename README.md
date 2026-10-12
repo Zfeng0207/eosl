@@ -78,13 +78,33 @@ If you use a different catalog or schema, update the three files in `config/quer
 
 **Owner status updates** (Update Center) are kept in memory. To persist them, add a Delta or Lakebase table; see the TODO in `updateStatus()`.
 
-### Connect Genie
+### Genie (Ask Genie panel)
 
-1. Add a `genie_space` resource (`CAN_RUN`) to `databricks.yml`. Expose it as `DATABRICKS_GENIE_SPACE_ID` in `app.yaml` with `valueFrom`. For local runs, set it in `.env`.
-2. Genie runs as the signed-in user, so enable the `genie` user API scope (`user_api_scopes`) in `databricks.yml`.
-3. Restart. `server/server.ts` registers `genie()` only when the variable is set. Until then the panel replies "Genie isn't connected yet."
+The panel talks to the Genie space **EOSL Decision Intelligence**, which sits over `workspace.eosl.lineage_records`, with `extended_support_rates` for cost. The space defines:
 
-The Leadership prototype has no suggested questions, so that block is hidden. To show it, add questions per page in `client/src/components/genie/questions.ts`. Genie answers show as plain text. Genie doesn't see the visible page content the way the prototype's assistant did.
+- business names and synonyms for the short column names, with value matching on owners, products, applications and so on
+- the status filters: Act now ≤ 90 days, At risk ≤ 365 days, Supported, No date
+- measures for assets and extended-support cost
+- six checked example queries and a short instruction block
+
+`server/server.ts` registers `genie()` only when `DATABRICKS_GENIE_SPACE_ID` is set. Without it, the panel replies "Genie isn't connected yet."
+
+Each answer shows Genie's text, the first 10 rows of its result table, a "Show SQL" toggle and an AI-generated note. Genie's suggested follow-ups replace the page's suggested questions, as in the prototype. Switching page starts a new conversation.
+
+**Recreate it in another account** (after creating the dataset), then put the printed ID in `.env`:
+
+```bash
+scripts/eosl-genie/create.sh <profile> <warehouse-id> workspace.eosl
+```
+
+The definition lives in `scripts/eosl-genie/build_space.py`. Edit it and recreate the space to change instructions or examples.
+
+**Deployed app:** Genie routes always run as the signed-in user. The app needs:
+
+- a `genie_space` resource (`CAN_RUN`) in `databricks.yml`, exposed as `DATABRICKS_GENIE_SPACE_ID` through `app.yaml` `valueFrom`
+- the `genie` user API scope (`user_api_scopes`)
+
+Users also need `SELECT` on `workspace.eosl` and access to the warehouse.
 
 ### Embed an AI/BI dashboard
 

@@ -1,10 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { EoslDataService } from '@/data/EoslDataService';
 import { worstOf } from '@/data/rag';
 import type { Overrides } from '@/data/rag';
-import type { EoslDataset, LineageKey, LineageSelection, Rag, StatusOption, WorkflowStep } from '@/data/types';
-
+import type { EoslDataset, LineageKey, Rag, StatusOption, WorkflowStep } from '@/data/types';
 import type { Horizon, TypeFilter } from './filters';
 
 export interface StatusUpdate {
@@ -14,22 +13,37 @@ export interface StatusUpdate {
   next: Rag;
 }
 
+/** A map node the user clicked to trace: everything not connected to it is dimmed. */
+export interface Trace {
+  k: LineageKey;
+  v: string;
+}
+
 interface EoslState {
   data: EoslDataset;
   type: TypeFilter;
   hz: Horizon;
-  ragFocus: Rag | null;
-  sel: LineageSelection;
   overrides: Overrides;
+  /** Lineage Explorer (owner view): statuses in focus, chosen owner, traced node, full screen, table open. */
+  focus: ReadonlySet<Rag>;
+  owner: string | null;
+  trace: Trace | null;
+  expanded: boolean;
+  tableOpen: boolean;
+  /** True when the lineage map should animate in for `owner` (it only animates when the owner changes). */
+  shouldAnimateOwner: (owner: string) => boolean;
   impSel: string;
   wf: number;
   wlog: readonly WorkflowStep[];
   lastUpdate: StatusUpdate | null;
   setType: (t: TypeFilter) => void;
   setHz: (m: Horizon) => void;
-  toggleRagFocus: (g: Rag) => void;
-  toggleSel: (k: LineageKey, v: string) => void;
-  resetLineage: () => void;
+  toggleFocus: (g: Rag) => void;
+  setOwner: (owner: string) => void;
+  toggleTrace: (t: Trace) => void;
+  clearTrace: () => void;
+  setExpanded: (on: boolean) => void;
+  setTableOpen: (open: boolean) => void;
   setImpSel: (name: string) => void;
   submitStatus: (product: string, status: StatusOption) => Promise<void>;
   advanceWorkflow: () => void;
@@ -38,8 +52,8 @@ interface EoslState {
 
 const EoslContext = createContext<EoslState | null>(null);
 
-// The prototype opens the Lineage Explorer with this product selected.
-const INITIAL_SELECTION: LineageSelection = { p: 'Windows 11 23H2' };
+// The Leadership prototype opens the Lineage Explorer focused on "Act now".
+const INITIAL_FOCUS: ReadonlySet<Rag> = new Set<Rag>(['red']);
 
 /** Loads the dataset once, then holds all cross-page state (filters, overrides, workflow). */
 export function EoslProvider({ service, children }: { service: EoslDataService; children: ReactNode }) {
@@ -80,24 +94,46 @@ function LoadedProvider({
   data: EoslDataset;
   children: ReactNode;
 }) {
-  const [type, setType] = useState<TypeFilter>('All');
+  const [type, setTypeState] = useState<TypeFilter>('All');
   const [hz, setHz] = useState<Horizon>(0);
-  const [ragFocus, setRagFocus] = useState<Rag | null>(null);
-  const [sel, setSel] = useState<LineageSelection>(INITIAL_SELECTION);
+  const [focus, setFocus] = useState<ReadonlySet<Rag>>(INITIAL_FOCUS);
+  const [owner, setOwnerState] = useState<string | null>(null);
+  const [trace, setTrace] = useState<Trace | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
+  const lastAnimatedOwner = useRef<string | null>(null);
   const [overrides, setOverrides] = useState<Overrides>({});
   const [impSel, setImpSel] = useState(data.impact.defaultScenario);
   const [wf, setWf] = useState(-1);
   const [wlog, setWlog] = useState<readonly WorkflowStep[]>([]);
   const [lastUpdate, setLastUpdate] = useState<StatusUpdate | null>(null);
 
-  const toggleRagFocus = useCallback((g: Rag) => setRagFocus((cur) => (cur === g ? null : g)), []);
-  const toggleSel = useCallback(
-    (k: LineageKey, v: string) => setSel((cur) => ({ ...cur, [k]: cur[k] === v ? undefined : v })),
+  // As in the prototype, changing the type, focus or owner clears the trace; changing the horizon doesn't.
+  const setType = useCallback((t: TypeFilter) => {
+    setTypeState(t);
+    setTrace(null);
+  }, []);
+  const toggleFocus = useCallback((g: Rag) => {
+    setFocus((cur) => {
+      const next = new Set(cur);
+      if (!next.delete(g)) next.add(g);
+      return next;
+    });
+    setTrace(null);
+  }, []);
+  const setOwner = useCallback((o: string) => {
+    setOwnerState(o);
+    setTrace(null);
+  }, []);
+  const toggleTrace = useCallback(
+    (t: Trace) => setTrace((cur) => (cur && cur.k === t.k && cur.v === t.v ? null : t)),
     []
   );
-  const resetLineage = useCallback(() => {
-    setSel({});
-    setRagFocus(null);
+  const clearTrace = useCallback(() => setTrace(null), []);
+  const shouldAnimateOwner = useCallback((o: string) => {
+    const changed = lastAnimatedOwner.current !== o;
+    lastAnimatedOwner.current = o;
+    return changed;
   }, []);
 
   const submitStatus = useCallback(
@@ -131,18 +167,25 @@ function LoadedProvider({
       data,
       type,
       hz,
-      ragFocus,
-      sel,
       overrides,
+      focus,
+      owner,
+      trace,
+      expanded,
+      tableOpen,
+      shouldAnimateOwner,
       impSel,
       wf,
       wlog,
       lastUpdate,
       setType,
       setHz,
-      toggleRagFocus,
-      toggleSel,
-      resetLineage,
+      toggleFocus,
+      setOwner,
+      toggleTrace,
+      clearTrace,
+      setExpanded,
+      setTableOpen,
       setImpSel,
       submitStatus,
       advanceWorkflow,
@@ -152,16 +195,22 @@ function LoadedProvider({
       data,
       type,
       hz,
-      ragFocus,
-      sel,
       overrides,
+      focus,
+      owner,
+      trace,
+      expanded,
+      tableOpen,
       impSel,
       wf,
       wlog,
       lastUpdate,
-      toggleRagFocus,
-      toggleSel,
-      resetLineage,
+      setType,
+      toggleFocus,
+      setOwner,
+      toggleTrace,
+      clearTrace,
+      shouldAnimateOwner,
       submitStatus,
       advanceWorkflow,
       resetWorkflow,

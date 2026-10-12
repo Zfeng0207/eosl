@@ -3,15 +3,14 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import { GenieAssistant } from '@/components/genie/GenieAssistant';
 import { PAGES } from '@/pages';
 
-/** Green header, nav tabs and the `#pg` page container from the prototype. */
+/** Leadership layout: green sidebar with the bp mark and page nav, and the `#pg` page container. */
 export function Shell() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const navRef = useRef<HTMLElement>(null);
 
   // The prototype scrolls to top on page change; in-page re-renders keep the scroll position.
-  // On narrow screens the nav scrolls sideways, so keep the active tab in view (the app opens on
-  // Lineage Explorer, which can start off-screen).
+  // Below 900px the sidebar becomes a top bar whose nav scrolls sideways, so keep the active tab in view.
   useEffect(() => {
     window.scrollTo(0, 0);
     const nav = navRef.current;
@@ -25,32 +24,43 @@ export function Shell() {
 
   return (
     <>
-      <header>
-        <div className="hd">
-          <div className="top">
-            <div>
-              <h1>EOSL Decision Intelligence v3</h1>
-              <span className="sub">
-                Lifecycle risk, ownership and action across OS, database, software and hardware estates
-              </span>
+      <div className="lay">
+        <aside className="side">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 6px' }}>
+            <div
+              style={{
+                flex: 'none',
+                width: 52,
+                height: 52,
+                borderRadius: 14,
+                background: '#FFFFFF',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <img src="/bp-logo.png" alt="bp" style={{ height: 40, width: 'auto', display: 'block' }} />
             </div>
+            <h1 style={{ padding: 0 }}>EOSL Decision Intelligence</h1>
           </div>
-          <nav ref={navRef}>
+          <nav ref={navRef} aria-label="Pages">
             {PAGES.map((p) => (
               <button
                 key={p.key}
                 type="button"
                 className={p.path === pathname ? 'on' : ''}
+                aria-current={p.path === pathname ? 'page' : undefined}
                 onClick={() => void navigate(p.path)}
               >
                 {p.label}
               </button>
             ))}
           </nav>
-        </div>
-      </header>
-      <div className="app" id="pg">
-        <Outlet />
+        </aside>
+        <main className="main">
+          <div className="app" id="pg">
+            <Outlet />
+          </div>
+        </main>
       </div>
       <GenieAssistant />
     </>

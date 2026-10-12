@@ -17,7 +17,7 @@ export function ImpactPage() {
   // Headline numbers and copy are static in the prototype. MOCK until backed by real data.
   return (
     <>
-      <div className="ttl">Impact Analysis: what happens if we do nothing?</div>
+      <div className="ttl">Impact Analysis</div>
       <div className="grid c4">
         <div className="card k red">
           <div className="n">2,711</div>

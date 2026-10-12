@@ -1,6 +1,6 @@
 /*
- * MOCK DATA. Everything in this file is synthetic, ported as-is from the EOSL v3
- * prototype (reference/eosl-app.js) so the numbers match it exactly. Replace this
+ * MOCK DATA. Everything in this file is synthetic, ported as-is from the EOSL
+ * prototypes (reference/eosl-app-lead.js; identical in eosl-app.js) so the numbers match exactly. Replace this
  * service with a real EoslDataService backed by analytics() before using the app
  * for decisions.
  */

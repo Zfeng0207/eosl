@@ -30,9 +30,8 @@ export interface LineageRecord {
   days: number | null;
 }
 
-/** The lineage columns that can be selected, in column order. */
+/** Lineage levels: product, sub-portfolio, owner, technical service, application. */
 export type LineageKey = 'p' | 'sub' | 'own' | 'svc' | 'app';
-export type LineageSelection = Partial<Record<LineageKey, string>>;
 
 export interface ImpactCluster {
   name: string;

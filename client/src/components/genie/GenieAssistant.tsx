@@ -47,6 +47,7 @@ function toBubble(m: GenieMessageItem, i: number): Bubble {
 /** The prototype's floating "Ask Genie" button and slide-in panel, backed by the genie() plugin. */
 export function GenieAssistant() {
   const page = pageForPath(useLocation().pathname);
+  const suggestions = SUGGESTED[page.key];
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -132,18 +133,16 @@ export function GenieAssistant() {
           </button>
         </div>
         <div className="gbody" ref={bodyRef} aria-live="polite">
-          <div className="gm a">
-            {`I can see the ${page.label} page. Ask me anything about it, or pick a suggested question below.`}
-          </div>
+          <div className="gm a">{`I can see the ${page.label} page. Ask me anything about it.`}</div>
           {bubbles.map((b) => (
             <div key={b.id} className={`gm ${b.role}${b.thinking ? ' t' : ''}`}>
               {b.text}
             </div>
           ))}
         </div>
-        <div className="gsug">
-          <div className="gl">Suggested for this page</div>
-          {SUGGESTED[page.key].map((q) => (
+        <div className="gsug" style={suggestions.length ? undefined : { display: 'none' }}>
+          {suggestions.length > 0 && <div className="gl">Suggested for this page</div>}
+          {suggestions.map((q) => (
             <button key={q} type="button" onClick={() => ask(q)}>
               {q}
             </button>

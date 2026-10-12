@@ -23,7 +23,7 @@ export const csvFileName = (title: string): string =>
 
 /** Client-side download; the BOM keeps Excel from mangling non-ASCII text. */
 export function downloadCsv(table: CsvTable, fileName: string): void {
-  const blob = new Blob(['﻿' + toCsv(table)], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob(['\uFEFF' + toCsv(table)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -31,5 +31,6 @@ export function downloadCsv(table: CsvTable, fileName: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // Revoke later: some browsers start the download asynchronously.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

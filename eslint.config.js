@@ -17,6 +17,8 @@ export default tseslint.config(
       'client/dist/**',
       '**.databricks/**',
       'reference/**',
+      'scripts/**',
+      'shared/appkit-types/**',
     ],
   },
 

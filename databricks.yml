@@ -1,0 +1,22 @@
+bundle:
+  name: eosl
+
+resources:
+  apps:
+    app:
+      name: "eosl"
+      description: "EOSL intelligence hub that turns fragmented lifecycle data into prioritised action across OS, database, software and hardware"
+      source_code_path: ./
+
+      # Start the app automatically on deploy.
+      lifecycle:
+        started: true
+      # Uncomment to enable on behalf of user API scopes. Available scopes: sql, genie, files, model-serving
+      # user_api_scopes:
+      #   - sql
+
+targets:
+  default:
+    default: true
+    workspace:
+      host: https://dbc-93edb167-b2ed.cloud.databricks.com

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { GenieAssistant } from '@/components/genie/GenieAssistant';
 import { PAGES } from '@/pages';
 
 /** Green header, nav tabs and the `#pg` page container from the prototype. */
@@ -41,6 +42,7 @@ export function Shell() {
       <div className="app" id="pg">
         <Outlet />
       </div>
+      <GenieAssistant />
     </>
   );
 }

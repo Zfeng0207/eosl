@@ -3,6 +3,7 @@ import { Shell } from '@/components/Shell';
 import { MockEoslDataService } from '@/data/mock/MockEoslDataService';
 import { ImpactPage } from '@/pages/ImpactPage';
 import { LineagePage } from '@/pages/LineagePage';
+import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { UpdateCenterPage } from '@/pages/UpdateCenterPage';
 import { DEFAULT_PATH } from '@/pages';
 import { EoslProvider } from '@/state/EoslContext';
@@ -15,11 +16,11 @@ const router = createBrowserRouter([
     element: <Shell />,
     children: [
       { index: true, element: <Navigate to={DEFAULT_PATH} replace /> },
-      { path: '/overview', element: <div className="ttl">Landscape Overview</div> },
-      { path: '/hosts-with-app', element: <div className="ttl">Host with Application</div> },
-      { path: '/hosts-without-app', element: <div className="ttl">Host without Application</div> },
-      { path: '/hosts-without-eosl', element: <div className="ttl">Host without EoSL</div> },
-      { path: '/database-eosl', element: <div className="ttl">Database EoSL Analysis</div> },
+      { path: '/overview', element: <PlaceholderPage page="overview" /> },
+      { path: '/hosts-with-app', element: <PlaceholderPage page="hosts-with-app" /> },
+      { path: '/hosts-without-app', element: <PlaceholderPage page="hosts-without-app" /> },
+      { path: '/hosts-without-eosl', element: <PlaceholderPage page="hosts-without-eosl" /> },
+      { path: '/database-eosl', element: <PlaceholderPage page="database-eosl" /> },
       { path: '/lineage', element: <LineagePage /> },
       { path: '/impact', element: <ImpactPage /> },
       { path: '/update-center', element: <UpdateCenterPage /> },

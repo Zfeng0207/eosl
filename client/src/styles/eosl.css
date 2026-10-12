@@ -50,5 +50,5 @@ svg text{fill:var(--mu);font-size:11px;font-family:'M PLUS Rounded 1c',sans-seri
 
 /* ---- Port additions (not in the prototype) ---- */
 /* Reserved slot for an embedded Databricks AI/BI dashboard */
-.ph{min-height:520px;margin-top:4px;border:1.5px dashed var(--bd);border-radius:18px;background:var(--bg);display:grid;place-items:center;color:var(--mu);font-size:13px}
+.ph{min-height:520px;margin-top:12px;border:1.5px dashed var(--bd);border-radius:18px;background:var(--bg);display:grid;place-items:center;color:var(--mu);font-size:13px}
 .phf{display:block;margin-top:14px;width:100%;min-height:520px;border:0;border-radius:22px}
